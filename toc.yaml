@@ -23,4 +23,4 @@ slug:                        # Slug generation
   break: "-"                 # The break delimiter to divide the slug into pieces of words.
   pad: "-..."                # Added to the end of the truncated slug
 
-process: true                # Process table of contents
+process: false               # Process table of contents

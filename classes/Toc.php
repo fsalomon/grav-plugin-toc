@@ -243,73 +243,40 @@ class Toc
     $this->language = $page->language() ? [$page->language()] : null;
     $this->options = $options;
 
-    $replacements = [];
-    // Find all occurrences of TOC and MINITOC in content
-    $regex = '~(<p>)?\s*\[(?P<type>(?:MINI)?TOC)\]\s*(?(1)</p>)~i';
-    if (preg_match_all($regex, $content, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER) === false) {
-      return $content;
-    }
-
     // Generate TOC
     $toc = $this->createToc($content);
-    if (empty($toc)) {
-      // Hide (mini-)toc marker
-      return preg_replace($regex, '', $content);
-    }
-
-    foreach ($matches as $match) {
-      $offset = $match[0][1];
-      $type = strtolower($match['type'][0]);
-
-      // Initialize variables
-      $current = -1;
-      $minitoc = [];
-
-      if ($type == 'toc') {
-        $minitoc = $toc;
-      } else {
-        // Get current (sub-)heading
-        foreach ($toc as $index => $heading) {
-          if ($index < $offset) {
-            $current = $index;
-          } else {
-            $level = $toc[$current]['level'];
-            if ($heading['level'] > $level) {
-              $minitoc[$index] = $heading;
-            } else {
-              break;
+   
+    if (isset($options['body']) && $options['body']) {
+      return $this->tocify($content, $options);
+    } else {
+      if (isset($options['half'])) {
+        $count = 0;
+        foreach ($toc as $item) {
+          if ($item['indent'] == 0) {
+            $count++;
+          }
+        }
+        $pivot = floor($count / 2) + 1;
+        $count = 0;
+        $drop = $options['half'] == 2;
+        foreach ($toc as $key => $item) {
+          if ($item['indent'] == 0) {
+            $count++;
+            if ($count == $pivot) {
+              $drop = !$drop;
             }
+          }
+          if ($drop) {
+            unset($toc[$key]);
           }
         }
       }
-
-      // Render TOC
       $vars['toc'] = [
-        'list' => $minitoc,
-        'type' => $type,
-        'heading' => ($current > -1) ? $toc[$current] : null,
+        'list' => $toc,
       ] + $options->toArray();
-
       $template = 'partials/toc' . TEMPLATE_EXT;
-      $minitoc = $twig->processTemplate($template, $vars);
-
-      // Save rendered TOC for later replacement
-      $replacements[] = $minitoc;
+      return $twig->processTemplate($template, $vars);
     }
-
-    // Tocify content
-    $content = $this->tocify($content, $options);
-    $this->language = null;
-
-    // Replace TOC and MINITOC placeholders
-    $content = preg_replace_callback($regex,
-      function($match) use ($replacements) {
-        static $i = 0;
-        return $replacements[$i++];
-    }, $content);
-
-    // Return modified content
-    return $content;
   }
 
   /** -------------------------------
@@ -433,6 +400,10 @@ class Toc
 
     // Strip tags
     $text = strip_tags($text);
+    
+    if (preg_match('~\d+\.?\d*~', $text, $match)) {
+      return trim($match[0], '.');
+    }
 
     // Perform some language dependent replacements
     $lang = $language ? [$language]: $this->language;
