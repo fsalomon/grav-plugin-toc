@@ -274,7 +274,8 @@ class Toc
       $vars['toc'] = [
         'list' => $toc,
       ] + $options->toArray();
-      $template = 'partials/toc' . TEMPLATE_EXT;
+      $templateName = isset($options['template']) ? $options['template'] : 'toc';
+      $template = 'partials/' .  $templateName . TEMPLATE_EXT;
       return $twig->processTemplate($template, $vars);
     }
   }
