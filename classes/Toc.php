@@ -11,7 +11,7 @@
 namespace Grav\Plugin;
 
 use ForceUTF8\Encoding;
-use Grav\Common\GravTrait;
+use Grav\Common\Grav;
 use RocketTheme\Toolbox\Event\Event;
 
 /**
